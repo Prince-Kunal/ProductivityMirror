@@ -2,8 +2,20 @@
 
 import Sidebar from "@/components/Sidebar";
 import Navbar from "@/components/Navbar";
+import { useAuth } from "@/hooks/useAuth";
+import Loading from "@/components/Loading";
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
+  const { isLoading } = useAuth();
+
+  if (isLoading) {
+    return (
+      <div className="flex min-h-screen w-full items-center justify-center bg-background">
+        <Loading />
+      </div>
+    );
+  }
+
   return (
     <div className="flex min-h-screen w-full bg-background selection:bg-primary/30">
       <Sidebar />
