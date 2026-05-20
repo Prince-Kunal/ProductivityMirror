@@ -25,7 +25,12 @@ export async function syncTasksAction(providerToken: string) {
 
   try {
     const events = await fetchCalendarEvents(providerToken, startOfDay.toISOString(), endOfWeek.toISOString());
+    console.log(`Fetched ${events.length} events from Google Calendar.`);
     
+    events.forEach(e => {
+      console.log(`Event: "${e.summary}" - colorId: ${e.colorId || 'none'} - mapped to: ${mapColorIdToDifficulty(e.colorId)}`);
+    });
+
     const tasksToUpsert = events
       .filter(event => {
         // Only keep events that have a recognized colorId
