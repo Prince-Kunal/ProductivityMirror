@@ -61,6 +61,55 @@ export interface Database {
           }
         ]
       }
+      goals: {
+        Row: {
+          id: string
+          user_id: string
+          title: string
+          description: string | null
+          importance: string
+          timeframe: string
+          is_completed: boolean
+          is_archived: boolean
+          completed_at: string | null
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          user_id: string
+          title: string
+          description?: string | null
+          importance?: string
+          timeframe?: string
+          is_completed?: boolean
+          is_archived?: boolean
+          completed_at?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          user_id?: string
+          title?: string
+          description?: string | null
+          importance?: string
+          timeframe?: string
+          is_completed?: boolean
+          is_archived?: boolean
+          completed_at?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "goals_user_id_fkey"
+            columns: ["user_id"]
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          }
+        ]
+      }
     }
     Views: {
       [_ in never]: never
