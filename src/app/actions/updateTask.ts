@@ -2,6 +2,8 @@
 
 import { createClient } from "@/utils/supabase/server";
 
+import { getYesterday } from "@/lib/date";
+
 export async function toggleTaskCompletion(taskId: string, isCompleted: boolean) {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
@@ -20,9 +22,7 @@ export async function toggleTaskCompletion(taskId: string, isCompleted: boolean)
 
   if (!existingTask) throw new Error("Task not found.");
 
-  const startOfYesterday = new Date();
-  startOfYesterday.setDate(startOfYesterday.getDate() - 1);
-  startOfYesterday.setHours(0, 0, 0, 0);
+  const startOfYesterday = getYesterday().start;
 
   if (new Date(existingTask.start_time) < startOfYesterday) {
     throw new Error("This task is locked. You can only edit tasks from today or yesterday.");

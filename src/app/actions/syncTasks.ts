@@ -2,6 +2,8 @@
 
 import { createClient } from "@/utils/supabase/server";
 import { fetchCalendarEvents, mapColorIdToDifficulty } from "@/services/calendar";
+import { getYesterday, getEndOfDay } from "@/lib/date";
+import { addDays } from "date-fns";
 
 export async function syncTasksAction(providerToken: string) {
   const supabase = await createClient();
@@ -11,20 +13,12 @@ export async function syncTasksAction(providerToken: string) {
     throw new Error("Unauthorized");
   }
 
-  // Fetch events for today (or a broader range)
-  const startOfDay = new Date();
-  startOfDay.setHours(0, 0, 0, 0);
-  
-  const endOfDay = new Date();
-  endOfDay.setHours(23, 59, 59, 999);
-
-  // We can fetch a week's worth of data to be safe, but let's stick to 7 days forward
-  const endOfWeek = new Date();
-  endOfWeek.setDate(endOfWeek.getDate() + 7);
-  endOfWeek.setHours(23, 59, 59, 999);
+  // Timezone-safe sync: Fetch events from yesterday morning to 7 days in the future
+  const syncStart = getYesterday().start;
+  const syncEnd = getEndOfDay(addDays(new Date(), 7));
 
   try {
-    const events = await fetchCalendarEvents(providerToken, startOfDay.toISOString(), endOfWeek.toISOString());
+    const events = await fetchCalendarEvents(providerToken, syncStart.toISOString(), syncEnd.toISOString());
     console.log(`Fetched ${events.length} events from Google Calendar.`);
     
     events.forEach(e => {

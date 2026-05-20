@@ -1,17 +1,16 @@
 import { createClient } from "@/utils/supabase/server";
 import CalendarView from "@/components/CalendarView";
 
+import { getStartOfDay, getEndOfDay } from "@/lib/date";
+import { subMonths, addMonths } from "date-fns";
+
 export default async function CalendarPage() {
   const supabase = await createClient();
 
-  // Fetch tasks for the next 2 months + last 1 month for calendar display
-  const from = new Date();
-  from.setMonth(from.getMonth() - 1);
-  from.setHours(0, 0, 0, 0);
-
-  const to = new Date();
-  to.setMonth(to.getMonth() + 2);
-  to.setHours(23, 59, 59, 999);
+  // Fetch tasks for the next 2 months + last 1 month for calendar display timezone-safely
+  const now = new Date();
+  const from = getStartOfDay(subMonths(now, 1));
+  const to = getEndOfDay(addMonths(now, 2));
 
   const { data: tasks } = await supabase
     .from("tasks")

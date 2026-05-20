@@ -9,22 +9,27 @@ import { Activity, Flame, BarChart3, Clock, Brain } from "lucide-react";
 import WeeklyTrendChart from "@/components/WeeklyTrendChart";
 import ProductivityHeatmap from "@/components/ProductivityHeatmap";
 import EffortBreakdownChart from "@/components/EffortBreakdownChart";
+import { getToday, getStartOfDay } from "@/lib/date";
+import { subDays } from "date-fns";
+
+function formatWeekday(dateStr: string) {
+  // dateStr is "yyyy-MM-dd"
+  const [year, month, day] = dateStr.split("-").map(Number);
+  const d = new Date(year, month - 1, day);
+  return d.toLocaleDateString("en-US", { weekday: "long" });
+}
 
 export default async function AnalyticsPage() {
   const supabase = await createClient();
 
-  const thirtyDaysAgo = new Date();
-  thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 29);
-  thirtyDaysAgo.setHours(0, 0, 0, 0);
-
-  const endOfToday = new Date();
-  endOfToday.setHours(23, 59, 59, 999);
+  const today = getToday();
+  const thirtyDaysAgo = getStartOfDay(subDays(new Date(), 29));
 
   const { data: allTasks } = await supabase
     .from("tasks")
     .select("*")
     .gte("start_time", thirtyDaysAgo.toISOString())
-    .lte("start_time", endOfToday.toISOString())
+    .lte("start_time", today.end.toISOString())
     .order("start_time", { ascending: true });
 
   const tasks = allTasks || [];
@@ -32,8 +37,7 @@ export default async function AnalyticsPage() {
   // Heatmap (28 days)
   const heatmapData: DailyStats[] = [];
   for (let i = 27; i >= 0; i--) {
-    const d = new Date();
-    d.setDate(d.getDate() - i);
+    const d = subDays(new Date(), i);
     heatmapData.push(analyzeDailyProductivity(tasks, d));
   }
 
@@ -151,7 +155,7 @@ export default async function AnalyticsPage() {
           <div className="glass-card rounded-2xl border p-5">
             <p className="text-xs font-semibold uppercase tracking-widest text-white/30 mb-3">Best Day</p>
             <p className="text-2xl font-bold text-white/90">
-              {new Date(bestDay.date).toLocaleDateString("en-US", { weekday: "long" })}
+              {formatWeekday(bestDay.date)}
             </p>
             <p className="text-sm text-white/50 mt-1">{bestDay.score}% execution rate</p>
           </div>
@@ -162,7 +166,7 @@ export default async function AnalyticsPage() {
           <div className="glass-card rounded-2xl border p-5">
             <p className="text-xs font-semibold uppercase tracking-widest text-white/30 mb-3">Lowest Day</p>
             <p className="text-2xl font-bold text-white/90">
-              {new Date(worstDay.date).toLocaleDateString("en-US", { weekday: "long" })}
+              {formatWeekday(worstDay.date)}
             </p>
             <p className="text-sm text-white/50 mt-1">{worstDay.score}% execution rate</p>
           </div>

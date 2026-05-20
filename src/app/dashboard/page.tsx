@@ -8,38 +8,31 @@ import { analyzeDailyProductivity, generateWeeklyTrend, getSleepCorrelation } fr
 import { BarChart3, CalendarDays, Moon, Flame } from "lucide-react";
 import { createClient } from "@/utils/supabase/server";
 import { Goal } from "@/types/goals";
+import { getToday, getYesterday, getStartOfDay, getDebugInfo, formatLocalDate } from "@/lib/date";
+import { subDays } from "date-fns";
 
 export default async function DashboardPage() {
   const supabase = await createClient();
   
-  // Get start and end of today
-  const startOfDay = new Date();
-  startOfDay.setHours(0, 0, 0, 0);
+  // Log timezone debug info on server console
+  const debugInfo = getDebugInfo();
+  console.log("=== MIRROR TIMEZONE DEBUG ===", JSON.stringify(debugInfo, null, 2));
   
-  const endOfDay = new Date();
-  endOfDay.setHours(23, 59, 59, 999);
+  // Get timezone-safe boundaries for today & yesterday
+  const today = getToday();
+  const yesterday = getYesterday();
 
-  // Fetch 30 days of historical data for analytics
-  const thirtyDaysAgo = new Date();
-  thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 29);
-  thirtyDaysAgo.setHours(0, 0, 0, 0);
+  // Fetch 30 days of historical data for analytics (timezone-safe start date)
+  const thirtyDaysAgo = getStartOfDay(subDays(new Date(), 29));
 
   const { data: allTasks } = await supabase
     .from('tasks')
     .select('*')
     .gte('start_time', thirtyDaysAgo.toISOString())
-    .lte('start_time', endOfDay.toISOString())
+    .lte('start_time', today.end.toISOString())
     .order('start_time', { ascending: true });
 
   const tasks = allTasks || [];
-
-  // Yesterday boundaries
-  const startOfYesterday = new Date();
-  startOfYesterday.setDate(startOfYesterday.getDate() - 1);
-  startOfYesterday.setHours(0, 0, 0, 0);
-  const endOfYesterday = new Date();
-  endOfYesterday.setDate(endOfYesterday.getDate() - 1);
-  endOfYesterday.setHours(23, 59, 59, 999);
 
   // Fetch weekly goals for widget
   const { data: weeklyGoals } = await supabase
@@ -50,28 +43,26 @@ export default async function DashboardPage() {
     .order("created_at", { ascending: false });
   const goals: Goal[] = (weeklyGoals || []) as Goal[];
 
-  // Filter tasks for today (excluding sleep)
+  // Filter tasks specifically for today (excluding sleep)
   const displayTasks = tasks.filter(t => {
     const taskDate = new Date(t.start_time);
-    return taskDate >= startOfDay && taskDate <= endOfDay && t.color_indicator !== 'sleep';
+    return taskDate >= today.start && taskDate <= today.end && t.color_indicator !== 'sleep';
   });
 
-  // Filter tasks for yesterday (excluding sleep)
+  // Filter tasks specifically for yesterday (excluding sleep)
   const yesterdayTasks = tasks.filter(t => {
     const taskDate = new Date(t.start_time);
-    return taskDate >= startOfYesterday && taskDate <= endOfYesterday && t.color_indicator !== 'sleep';
+    return taskDate >= yesterday.start && taskDate <= yesterday.end && t.color_indicator !== 'sleep';
   });
-
   
-  // Calculate analytics
+  // Calculate analytics using timezone-safe Date representations
   const todayStats = analyzeDailyProductivity(tasks, new Date());
   const weeklyTrendData = generateWeeklyTrend(tasks, new Date());
   
   // Heatmap data (last 28 days for a nice 4-week grid)
   const heatmapData = [];
   for (let i = 27; i >= 0; i--) {
-    const d = new Date();
-    d.setDate(d.getDate() - i);
+    const d = subDays(new Date(), i);
     heatmapData.push(analyzeDailyProductivity(tasks, d));
   }
 
