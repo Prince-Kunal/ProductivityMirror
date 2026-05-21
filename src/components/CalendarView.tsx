@@ -41,6 +41,7 @@ interface ModalState {
 export default function CalendarView({ initialEvents }: { initialEvents: any[] }) {
   const { providerToken } = useAuth();
   const router = useRouter();
+  const [calendarView, setCalendarView] = useState("timeGridWeek");
   const [isSyncing, setIsSyncing] = useState(false);
   const [modal, setModal] = useState<ModalState>({ open: false, mode: "create" });
   const [form, setForm] = useState({ title: "", colorId: "11" });
@@ -48,8 +49,12 @@ export default function CalendarView({ initialEvents }: { initialEvents: any[] }
   const [FC, setFC] = useState<any>(null);
   const [plugins, setPlugins] = useState<any[]>([]);
 
-  // Dynamically load FullCalendar on client only
+  // Dynamically load FullCalendar and check screen width
   useEffect(() => {
+    if (typeof window !== "undefined" && window.innerWidth < 768) {
+      setCalendarView("timeGridDay");
+    }
+
     Promise.all([
       import("@fullcalendar/react"),
       import("@fullcalendar/daygrid"),
@@ -162,7 +167,7 @@ export default function CalendarView({ initialEvents }: { initialEvents: any[] }
         <button
           onClick={handleSync}
           disabled={isSyncing || !providerToken}
-          className="flex items-center gap-2 rounded-xl border border-white/10 bg-white/5 px-4 py-2.5 text-sm font-medium text-white/80 hover:bg-white/10 transition-all disabled:opacity-40"
+          className="flex items-center gap-2 rounded-xl border border-white/10 bg-white/5 px-4 py-2.5 text-sm font-medium text-white/80 hover:bg-white/10 transition-all disabled:opacity-40 select-none active:scale-[0.98] touch-manipulation"
         >
           <RefreshCw className={`h-4 w-4 ${isSyncing ? "animate-spin" : ""}`} />
           {isSyncing ? "Syncing..." : "Sync Calendar"}
@@ -189,14 +194,16 @@ export default function CalendarView({ initialEvents }: { initialEvents: any[] }
       {!FC ? (
         <CalendarSkeleton />
       ) : (
-        <div className="fc-dark rounded-2xl overflow-hidden border border-white/5 bg-card/20">
+        <div className="fc-dark rounded-2xl overflow-hidden border border-white/5 bg-card/20 text-xs sm:text-sm">
           <FC
             plugins={plugins}
-            initialView="timeGridWeek"
+            initialView={calendarView}
             headerToolbar={{
               left: "prev,next today",
               center: "title",
-              right: "dayGridMonth,timeGridWeek,timeGridDay",
+              right: typeof window !== "undefined" && window.innerWidth < 768 
+                ? "timeGridDay,dayGridMonth" 
+                : "dayGridMonth,timeGridWeek,timeGridDay",
             }}
             height={650}
             events={fcEvents}
@@ -213,6 +220,7 @@ export default function CalendarView({ initialEvents }: { initialEvents: any[] }
             nowIndicator={true}
             eventDisplay="block"
             expandRows={true}
+            longPressDelay={250} // Make touch select instant and fluid
           />
         </div>
       )}
